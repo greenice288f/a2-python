@@ -1,8 +1,12 @@
 import time
 
-def signal_every_five_seconds():
+counter = 0
+
+def increase_counter():
+    global counter
     while True:
-        # This function will be called every 5 seconds
-        print("Signal!")
-        time.sleep(5)
-signal_every_five_seconds()
+        counter += 1
+        print(counter)
+        time.sleep(1)
+
+increase_counter()
