@@ -28,10 +28,11 @@ def send():
         global currentDest
         global block
         global timer
+        block =True
         msgFromUser = input("Type your message: ")
         msgFromUserArr = msgFromUser.split(' ',1)
-
-        message =msgFromUserArr[1]
+        msgFromUser=msgFromUserArr[1]
+        message ="searching"
         Dest = msgFromUserArr[0][:2] + " " + msgFromUserArr[0][2:]
         Dest = bytes.fromhex(Dest)
         currentDest=str(Dest)
@@ -45,7 +46,6 @@ def send():
                 if addr.family == socket.AF_INET:  # We only want to broadcast on IPv4 interfaces
                     ip = addr.address.rsplit('.', 1)[0] + '.255'  # Calculate the broadcast IP for 
                     sock.sendto(Dest+Sender+PrevSender+hexType+message.encode(), (ip, port))
-        print("sent")
         initialTimer=timer
         quitByTimer=False
         while(block):
@@ -54,14 +54,14 @@ def send():
                 quitByTimer=True
             continue
         if(not quitByTimer):
-            messages = ["message " + str(i) for i in range(1, 11)]
+            #messages = ["message " + str(i) for i in range(1, 11)]
             hexType=bytes.fromhex("02")
-            for message in messages:
-                for interface_name, addrs in interfaces.items():
-                    for addr in addrs:
-                        if addr.family == socket.AF_INET:  # We only want to broadcast on IPv4 interfaces
-                            ip = addr.address.rsplit('.', 1)[0] + '.255'  # Calculate the broadcast IP for 
-                            sock.sendto(Dest+Sender+PrevSender+hexType+message.encode(), (ip, port))
+            #for message in messages:
+            for interface_name, addrs in interfaces.items():
+                for addr in addrs:
+                    if addr.family == socket.AF_INET:  # We only want to broadcast on IPv4 interfaces
+                        ip = addr.address.rsplit('.', 1)[0] + '.255'  # Calculate the broadcast IP for 
+                        sock.sendto(Dest+Sender+PrevSender+hexType+msgFromUser.encode(), (ip, port))
 
             #send deleting lineddd
             block=True
@@ -88,15 +88,15 @@ def listener():
             PrevSender=bytes.fromhex("00 00")
             message="ack"
             msgType=data[6]
-            print(data)
-
             if msgType== 0: 
-                sock.sendto(Dest+originalSender+PrevSender+bytes.fromhex("02")+message.encode(), addr)
+                sock.sendto(Dest+originalSender+PrevSender+bytes.fromhex("01")+message.encode(), addr)
             if msgType== 1: 
-                print(data)
-            if msgType== 2: 
                 if currentDest==str(Dest):
                     block=False
+                    print("Route found")
+            if msgType== 2: 
+                print(data)
+
             
 def increase_counter():
     global timer

@@ -1,9 +1,11 @@
 import socket
 import psutil
+import time
+import threading
 
 address="BB 02"
 RoutingTable=[]
-
+timer=0
 def addToRoutingTable(originalSender,dest,addr):
     isThere=False
     for i in range(len(RoutingTable)):
@@ -11,7 +13,7 @@ def addToRoutingTable(originalSender,dest,addr):
             isThere=True
             break
     if(not isThere):
-        RoutingTable.append([str(originalSender),str(dest),addr])
+        RoutingTable.append([str(originalSender),str(dest),addr,timer])
 def listen_udp(port=50000):
     print("Listeing")
     """Listen for UDP broadcasts on a specific port."""
@@ -20,6 +22,7 @@ def listen_udp(port=50000):
     sock.bind(("0.0.0.0", port))
     while True:
         global RoutingTable
+        global timer
         data, addr = sock.recvfrom(65535)
         dest=data[:2]
         originalSender=data[2:4]
@@ -44,13 +47,9 @@ def listen_udp(port=50000):
                         continue
                     else:
                         tempTable.append(RoutingTable[i])
-                print("eddig jo")
-                print(tempTable)
                 RoutingTable=tempTable
-
                 hexMsgType=bytes.fromhex("03")
                 try:
-                    print("sending")
                     print(ipAddress)
                     sock.sendto(dest+originalSender+bytes.fromhex(address)+hexMsgType+message,ipAddress)
                 except:
@@ -70,6 +69,7 @@ def listen_udp(port=50000):
                         if(msgType==2):
                             hexMsgType=bytes.fromhex("02")
                         print("direct")
+                        routes[3]=timer
                         sock.sendto(dest+originalSender+bytes.fromhex(address)+hexMsgType+message,routes[2])
                         isSent=True
                 if(not isSent):
@@ -89,10 +89,33 @@ def listen_udp(port=50000):
                                 else:
                                     sock.sendto(dest+originalSender+bytes.fromhex(address)+hexMsgType+message, (ip, port))     
                     print("broadA")
-        print(RoutingTable)
 
+def increase_counter():
+    global RoutingTable
+    global timer
+    while True:
+        timer += 1
+        tempTable=[]
+        for i in range(len(RoutingTable)):       
+            if(timer-RoutingTable[i][3]>5):
+                continue
+            else:
+                tempTable.append(RoutingTable[i])
+        RoutingTable=tempTable
+        time.sleep(1)
 
-
+def askRoutingTable():
+    global RoutingTable
+    while(True):
+        msgFromUser = input("Type your message: ")
+        if msgFromUser=="table":
+            print("table")
+            print(RoutingTable)
 # Listen for broadcasts
 if __name__ == "__main__":
+    askRoutingTable_thread=threading.Thread(target=askRoutingTable)
+    timer_thread=threading.Thread(target=increase_counter)
+    timer_thread.start()
+    askRoutingTable_thread.start()
     listen_udp()
+
