@@ -68,6 +68,10 @@ def listen_udp(port=50000):
                             hexMsgType=bytes.fromhex("00")
                         if(msgType==2):
                             hexMsgType=bytes.fromhex("02")
+                        if(msgType==4):
+                            hexMsgType=bytes.fromhex("04")
+                        if(msgType==5):
+                            hexMsgType=bytes.fromhex("05")
                         print("direct")
                         routes[3]=timer
                         sock.sendto(dest+originalSender+bytes.fromhex(address)+hexMsgType+message,routes[2])
@@ -80,6 +84,10 @@ def listen_udp(port=50000):
                         hexMsgType=bytes.fromhex("00")
                     if(msgType==2):
                         hexMsgType=bytes.fromhex("02")
+                    if(msgType==4):
+                        hexMsgType=bytes.fromhex("04")
+                    if(msgType==5):
+                        hexMsgType=bytes.fromhex("05")
                     for interface_name, addrs in interfaces.items():
                         for addr in addrs:
                             if addr.family == socket.AF_INET:  # We only want to broadcast on IPv4 interfaces

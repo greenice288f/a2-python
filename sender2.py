@@ -5,7 +5,7 @@ import time
 import zlib
 #broadcasting
 bufferSize = 65535
-address="AA 04"
+address="AA 01"
 RoutingTable=[]
 port=50000
 """Broadcast a UDP message on a specific port."""

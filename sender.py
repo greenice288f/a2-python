@@ -2,10 +2,10 @@ import socket
 import psutil
 import threading
 import time
-
+import zlib
 #broadcasting
 bufferSize = 65535
-address="AA 01"
+address="AA 02"
 RoutingTable=[]
 port=50000
 """Broadcast a UDP message on a specific port."""
@@ -15,6 +15,19 @@ interfaces = psutil.net_if_addrs()
 block = True
 currentDest=""
 timer=0
+arrived=False
+retry=True
+currentRoute=""
+def checksum_calculator(data):
+    checksum = zlib.crc32(data)
+    checksum = checksum%255
+    return checksum
+
+def checksumCalculatorB(data):
+    checksum = zlib.crc32(data)
+    checksum = checksum%255
+    checksumb= checksum.to_bytes(1,"big")
+    return checksumb
 def inRoutingTable(dest):
     for routes in RoutingTable:
         if(routes[0]==str(dest)):
@@ -25,10 +38,13 @@ def send():
     print("sender is up")
 
     while True:
+        global arrived
         global currentDest
         global block
         global timer
+        global retry
         block =True
+        currentDest=""
         msgFromUser = input("Type your message: ")
         msgFromUserArr = msgFromUser.split(' ',1)
         msgFromUser=msgFromUserArr[1]
@@ -54,30 +70,37 @@ def send():
                 quitByTimer=True
             continue
         if(not quitByTimer):
-            #messages = ["message " + str(i) for i in range(1, 11)]
-            hexType=bytes.fromhex("02")
-            #for message in messages:
-            for interface_name, addrs in interfaces.items():
-                for addr in addrs:
-                    if addr.family == socket.AF_INET:  # We only want to broadcast on IPv4 interfaces
-                        ip = addr.address.rsplit('.', 1)[0] + '.255'  # Calculate the broadcast IP for 
-                        sock.sendto(Dest+Sender+PrevSender+hexType+msgFromUser.encode(), (ip, port))
+            retry=True
+            
+            hexType=bytes.fromhex("02") 
+            checkSum=checksumCalculatorB(msgFromUser.encode())
+            sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
+            block=True
+            while(block):
+                continue
+            block=True
+            if(retry):
+                hexType=bytes.fromhex("02") 
+                checkSum=checksumCalculatorB(msgFromUser.encode())
+                sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
+                block=True
+                while(block):
+                    continue
 
             #send deleting lineddd
-            block=True
             hexType=bytes.fromhex("03")
-            for interface_name, addrs in interfaces.items():
-                for addr in addrs:
-                    if addr.family == socket.AF_INET:  # We only want to broadcast on IPv4 interfaces
-                        ip = addr.address.rsplit('.', 1)[0] + '.255'  # Calculate the broadcast IP for 
-                        message="delete"
-                        sock.sendto(Dest+Sender+PrevSender+hexType+message.encode(), (ip, port))
+            message="delete"
+            sock.sendto(Dest+Sender+PrevSender+hexType+message.encode(), currentDest)
+        
         else:
             print("time out")
 
 def listener():
     sock.bind(("0.0.0.0", port))
     global block
+    global arrived
+    global currentDest
+    global retry
     while True:
         data, addr = sock.recvfrom(65535)
         sender=data[2:4]
@@ -86,16 +109,35 @@ def listener():
             Dest=data[2:4]
             originalSender=bytes.fromhex(address)
             PrevSender=bytes.fromhex("00 00")
-            message="ack"
+            messageA="ack"
+
             msgType=data[6]
             if msgType== 0: 
-                sock.sendto(Dest+originalSender+PrevSender+bytes.fromhex("01")+message.encode(), addr)
+                sock.sendto(Dest+originalSender+PrevSender+bytes.fromhex("01")+messageA.encode(), addr)
             if msgType== 1: 
                 if currentDest==str(Dest):
-                    block=False
+                    currentDest=addr
                     print("Route found")
+                    block=False
+
             if msgType== 2: 
-                print(data)
+                messageFromEP=data[8:]
+                checkSumFromPacket=data[7]
+                checksum=checksum_calculator(messageFromEP)
+                if(checkSumFromPacket==checksum):
+                    print(data)
+                    sock.sendto(Dest+originalSender+PrevSender+bytes.fromhex("04")+messageA.encode(), addr)
+                else:
+                    sock.sendto(Dest+originalSender+PrevSender+bytes.fromhex("05")+messageA.encode(), addr)
+            if msgType== 4:
+                print("ack Arrived") 
+                block=False
+                retry=False
+            if msgType== 5:
+                print("ack Arrived") 
+                block=False
+                retry=True
+
 
             
 def increase_counter():

@@ -57,7 +57,7 @@ services:
     build: .
     volumes:
       - .:/compnets
-    command: python3 client.py router1
+    command: python3 sender.py router1
     stdin_open: true
     tty: true
     depends_on:
@@ -73,7 +73,7 @@ services:
     build: .
     volumes:
       - .:/compnets
-    command: python3 client.py router3
+    command: python3 receiver.py router3
     stdin_open: true
     tty: true
     depends_on:
@@ -83,6 +83,21 @@ services:
     networks:
       - stub2
 
+  client3:
+    profiles: ["endpoints"]
+    image: "pycimage"
+    build: .
+    volumes:
+      - .:/compnets
+    command: python3 client.py router3
+    stdin_open: true
+    tty: true
+    depends_on:
+      - router3
+    environment:
+      HOSTNAME: client3
+    networks:
+      - stub2
 
 # 2 Stub networks and 3 transient networks
 networks:
