@@ -5,7 +5,7 @@ import time
 import zlib
 #broadcasting
 bufferSize = 65535
-address="AA 04"
+address="AA 03"
 RoutingTable=[]
 port=50000
 """Broadcast a UDP message on a specific port."""
@@ -76,16 +76,30 @@ def send():
             checkSum=checksumCalculatorB(msgFromUser.encode())
             sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
             block=True
+            initialTimer=timer
+            quitByTimer=False
+
             while(block):
+                if(timer-initialTimer>=5):
+                    block=False
+                    quitByTimer=True
                 continue
-            block=True
-            if(retry):
-                hexType=bytes.fromhex("02") 
-                checkSum=checksumCalculatorB(msgFromUser.encode())
-                sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
+            
+            if(quitByTimer):
                 block=True
-                while(block):
-                    continue
+                if(retry):
+                    hexType=bytes.fromhex("02") 
+                    checkSum=checksumCalculatorB(msgFromUser.encode())
+                    sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
+                    block=True
+                    initialTimer=timer
+                    quitByTimer=False
+
+                    while(block):
+                        if(timer-initialTimer>=5):
+                            block=False
+                            quitByTimer=True
+                        continue
 
             #send deleting lineddd
             hexType=bytes.fromhex("03")

@@ -15,7 +15,7 @@ def addToRoutingTable(originalSender,dest,addr):
     if(not isThere):
         RoutingTable.append([str(originalSender),str(dest),addr,timer])
 def listen_udp(port=50000):
-    print("Listeing")
+    print("Listening")
     """Listen for UDP broadcasts on a specific port."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

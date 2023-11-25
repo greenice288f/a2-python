@@ -5,8 +5,7 @@ import time
 import zlib
 #broadcasting
 bufferSize = 65535
-address="AA 03"
-RoutingTable=[]
+address="AA 04"
 port=50000
 """Broadcast a UDP message on a specific port."""
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -28,11 +27,7 @@ def checksumCalculatorB(data):
     checksum = checksum%255
     checksumb= checksum.to_bytes(1,"big")
     return checksumb
-def inRoutingTable(dest):
-    for routes in RoutingTable:
-        if(routes[0]==str(dest)):
-            return True
-    return False
+
 #0- searching,1 hi im here, message, 2 reply, 3 last one
 def send():
     print("sender is up")
@@ -76,18 +71,32 @@ def send():
             checkSum=checksumCalculatorB(msgFromUser.encode())
             sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
             block=True
-            while(block):
-                continue
-            block=True
-            if(retry):
-                hexType=bytes.fromhex("02") 
-                checkSum=checksumCalculatorB(msgFromUser.encode())
-                sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
-                block=True
-                while(block):
-                    continue
+            initialTimer=timer
+            quitByTimer=False
 
-            #send deleting lineddd
+            while(block):
+                if(timer-initialTimer>=5):
+                    block=False
+                    quitByTimer=True
+                continue
+            
+            if(quitByTimer):
+                block=True
+                if(retry):
+                    hexType=bytes.fromhex("02") 
+                    checkSum=checksumCalculatorB(msgFromUser.encode())
+                    sock.sendto(Dest+Sender+PrevSender+hexType+checkSum+msgFromUser.encode(), currentDest)
+                    block=True
+                    initialTimer=timer
+                    quitByTimer=False
+
+                    while(block):
+                        if(timer-initialTimer>=5):
+                            block=False
+                            quitByTimer=True
+                        continue
+
+            #send deleting line
             hexType=bytes.fromhex("03")
             message="delete"
             sock.sendto(Dest+Sender+PrevSender+hexType+message.encode(), currentDest)
@@ -96,11 +105,11 @@ def send():
             print("time out")
 
 def listener():
-    sock.bind(("0.0.0.0", port))
     global block
     global arrived
     global currentDest
     global retry
+    sock.bind(("0.0.0.0", port))
     while True:
         data, addr = sock.recvfrom(65535)
         sender=data[2:4]
@@ -119,7 +128,6 @@ def listener():
                     currentDest=addr
                     print("Route found")
                     block=False
-
             if msgType== 2: 
                 messageFromEP=data[8:]
                 checkSumFromPacket=data[7]
